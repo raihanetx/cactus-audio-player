@@ -3,16 +3,12 @@ package com.cactus.app
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Note
-import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Book
-import androidx.compose.material.icons.outlined.Chat
-import androidx.compose.material.icons.outlined.MusicNote
-import androidx.compose.material.icons.outlined.Note
-import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.QueueMusic
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -27,13 +23,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-import com.cactus.app.ui.dialogue.DialogueScreen
 import com.cactus.app.ui.library.LibraryScreen
-import com.cactus.app.ui.loops.LoopsScreen
-import com.cactus.app.ui.notes.NotesScreen
 import com.cactus.app.ui.player.PlayerScreen
 import com.cactus.app.ui.settings.SettingsScreen
 import com.cactus.app.ui.theme.Blue500
@@ -52,10 +43,8 @@ fun CactusApp() {
 
     val navItems = listOf(
         NavItem("Library", Icons.Filled.Book, Icons.Outlined.Book),
-        NavItem("Playing", Icons.Filled.MusicNote, Icons.Outlined.MusicNote),
-        NavItem("Dialogue", Icons.Filled.Chat, Icons.Outlined.Chat),
-        NavItem("Loops", Icons.Filled.Repeat, Icons.Outlined.Repeat),
-        NavItem("Notes", Icons.Filled.Note, Icons.Outlined.Note),
+        NavItem("Playlists", Icons.Filled.QueueMusic, Icons.Outlined.QueueMusic),
+        NavItem("Playing", Icons.Filled.PlayCircle, Icons.Outlined.PlayCircle),
         NavItem("Settings", Icons.Filled.Settings, Icons.Outlined.Settings),
     )
 
@@ -73,7 +62,6 @@ fun CactusApp() {
                                 imageVector = if (selectedTab == index) item.activeIcon else item.inactiveIcon,
                                 contentDescription = item.label,
                                 tint = if (selectedTab == index) Blue500 else Neutral400,
-                                modifier = Modifier,
                             )
                         },
                         label = {
@@ -81,7 +69,6 @@ fun CactusApp() {
                                 text = item.label,
                                 fontWeight = if (selectedTab == index) FontWeight.SemiBold else FontWeight.Medium,
                                 color = if (selectedTab == index) Blue500 else Neutral500,
-                                fontSize = 9.sp,
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -95,13 +82,11 @@ fun CactusApp() {
         when (selectedTab) {
             0 -> LibraryScreen(
                     modifier = Modifier.padding(paddingValues),
-                    onTrackClick = { selectedTab = 1 },
+                    onTrackClick = { selectedTab = 2 },
                 )
-            1 -> PlayerScreen(modifier = Modifier.padding(paddingValues))
-            2 -> DialogueScreen(modifier = Modifier.padding(paddingValues))
-            3 -> LoopsScreen(modifier = Modifier.padding(paddingValues))
-            4 -> NotesScreen(modifier = Modifier.padding(paddingValues))
-            5 -> SettingsScreen(modifier = Modifier.padding(paddingValues))
+            1 -> com.cactus.app.ui.playlists.PlaylistsScreen(modifier = Modifier.padding(paddingValues))
+            2 -> PlayerScreen(modifier = Modifier.padding(paddingValues))
+            3 -> SettingsScreen(modifier = Modifier.padding(paddingValues))
         }
     }
 }
