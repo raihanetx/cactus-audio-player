@@ -22,6 +22,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
@@ -112,7 +116,7 @@ private fun PlayerHeader(currentPage: Int, track: Track) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(modifier = Modifier.size(36.dp).clip(CircleShape).clickable { }, contentAlignment = Alignment.Center) {
-                Text("\uF0D7", color = Neutral700, fontSize = 16.sp)
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = Neutral700, modifier = Modifier.size(20.dp))
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
@@ -132,7 +136,7 @@ private fun PlayerHeader(currentPage: Int, track: Track) {
                 )
             }
             Box(modifier = Modifier.size(36.dp).clip(CircleShape).clickable { }, contentAlignment = Alignment.Center) {
-                Text("\u2022\u2022\u2022", color = Neutral700, fontSize = 14.sp)
+                Icon(Icons.Filled.MoreHoriz, contentDescription = null, tint = Neutral700, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -140,71 +144,76 @@ private fun PlayerHeader(currentPage: Int, track: Track) {
 
 @Composable
 private fun NowPlayingPage(track: Track) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Box(
-            modifier = Modifier.size(224.dp).clip(RoundedCornerShape(16.dp)).background(
-                Brush.verticalGradient(listOf(Neutral900, Black))
-            ),
-            contentAlignment = Alignment.Center,
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(track.initials, color = White.copy(alpha = 0.9f), fontSize = 72.sp, fontWeight = FontWeight.Black)
+            Spacer(modifier = Modifier.height(40.dp))
+
+            Box(
+                modifier = Modifier.size(160.dp).clip(RoundedCornerShape(24.dp)).background(
+                    Brush.linearGradient(
+                        colors = listOf(Neutral800, Black),
+                        start = Offset(0f, 0f),
+                        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
+                    )
+                ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.MusicNote, contentDescription = null, tint = White.copy(alpha = 0.9f), modifier = Modifier.size(48.dp))
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(track.title, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Black)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                "Tap play to start listening and swipe left to view translations.",
+                fontSize = 12.sp,
+                color = Neutral400,
+                textAlign = TextAlign.Center,
+                lineHeight = 18.sp,
+                modifier = Modifier.padding(horizontal = 40.dp),
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(track.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Black, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(track.subtitle, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Neutral600)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        var progress by remember { mutableStateOf(0.16f) }
-
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Neutral200).clickable { }
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(progress).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Blue500)
-                )
-            }
+        Column(modifier = Modifier.fillMaxWidth().background(White).padding(horizontal = 20.dp).padding(top = 12.dp, bottom = 8.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("0:12", color = Neutral500, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                Text("-1:03", color = Neutral500, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                Text("0:00", color = Neutral500, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, modifier = Modifier.width(30.dp))
+                Box(modifier = Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Neutral200)) {
+                    Box(modifier = Modifier.fillMaxWidth(0.16f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Black))
+                }
+                Text("0:00", color = Neutral500, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, modifier = Modifier.width(30.dp))
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("-10s", color = Neutral700, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.clickable { })
+                Spacer(modifier = Modifier.width(24.dp))
+                Box(
+                    modifier = Modifier.clip(RoundedCornerShape(100)).background(Black).clickable { }
+                        .padding(horizontal = 24.dp, vertical = 10.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = White, modifier = Modifier.size(14.dp))
+                        Text("Play", color = White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.width(24.dp))
+                Text("+10s", color = Neutral700, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.clickable { })
             }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = "-10s", color = Black, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.clickable { })
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(100))
-                    .background(Blue500)
-                    .clickable { }
-                    .padding(horizontal = 48.dp, vertical = 10.dp),
-            ) {
-                Text(text = "Play", color = White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            }
-            Text(text = "+10s", color = Black, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.clickable { })
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
