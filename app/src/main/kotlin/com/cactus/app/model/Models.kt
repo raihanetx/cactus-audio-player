@@ -9,3 +9,9 @@ data class VideoItem(
     val dateAdded: Long,
     val mimeType: String,
 )
+
+data class PlaybackState(
+    val currentPosition: Long = 0,
+    val duration: Long = 0,
+    val isPlaying: Boolean = false,
+)
