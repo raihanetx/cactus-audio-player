@@ -1,13 +1,16 @@
 package com.cactus.app.ui.videolist
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,14 +25,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -57,17 +67,24 @@ import com.cactus.app.ui.theme.Neutral900
 import com.cactus.app.ui.theme.White
 import java.io.File
 
+private enum class SortMode { DATE_DESC, DATE_ASC, TITLE_ASC, TITLE_DESC, DURATION_DESC, DURATION_ASC }
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoListScreen(
     videos: List<VideoItem>,
     onItemClick: (VideoItem) -> Unit,
+    onOpenSettings: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var query by remember { mutableStateOf("") }
+    var showSearch by remember { mutableStateOf(false) }
+    var sortMode by remember { mutableStateOf(SortMode.DATE_DESC) }
+    var showSortSheet by remember { mutableStateOf(false) }
 
-    val filtered by remember(videos, query) {
+    val filtered by remember(videos, query, sortMode) {
         derivedStateOf {
-            if (query.isBlank()) {
+            val base = if (query.isBlank()) {
                 videos
             } else {
                 videos.filter {
@@ -75,91 +92,123 @@ fun VideoListScreen(
                         getParentFolder(it.path).contains(query, ignoreCase = true)
                 }
             }
+            when (sortMode) {
+                SortMode.DATE_DESC  -> base.sortedByDescending { it.dateAdded }
+                SortMode.DATE_ASC   -> base.sortedBy { it.dateAdded }
+                SortMode.TITLE_ASC  -> base.sortedBy { it.title.lowercase() }
+                SortMode.TITLE_DESC -> base.sortedByDescending { it.title.lowercase() }
+                SortMode.DURATION_DESC -> base.sortedByDescending { it.durationMs }
+                SortMode.DURATION_ASC  -> base.sortedBy { it.durationMs }
+            }
         }
     }
 
-    Column(modifier = modifier.fillMaxSize().background(White)) {
-        LibraryHeader(
-            total = videos.size,
-            query = query,
-            onQueryChange = { query = it },
-        )
-
-        when {
-            videos.isEmpty() -> EmptyState(
-                modifier = Modifier.fillMaxSize().weight(1f),
-            )
-            filtered.isEmpty() -> NoResultsState(
-                modifier = Modifier.fillMaxSize().weight(1f),
-                query = query,
-            )
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp),
+    Scaffold(
+        modifier = modifier,
+        bottomBar = {
+            NavigationBar(
+                containerColor = White,
+                tonalElevation = 2.dp,
             ) {
-                items(filtered, key = { it.id }) { video ->
-                    TrackRow(video = video, onClick = { onItemClick(video) })
-                    HorizontalDivider(
-                        color = Neutral100,
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(start = 72.dp, end = 16.dp),
-                    )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
+                    label = { Text("Search") },
+                    selected = showSearch,
+                    onClick = { showSearch = !showSearch },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Black,
+                        unselectedIconColor = Neutral500,
+                        indicatorColor = Neutral100,
+                    ),
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Filled.FilterList, contentDescription = "Sort") },
+                    label = { Text("Sort") },
+                    selected = showSortSheet,
+                    onClick = { showSortSheet = true },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Black,
+                        unselectedIconColor = Neutral500,
+                        indicatorColor = Neutral100,
+                    ),
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
+                    label = { Text("Settings") },
+                    selected = false,
+                    onClick = { onOpenSettings?.invoke() },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Black,
+                        unselectedIconColor = Neutral500,
+                        indicatorColor = Neutral100,
+                    ),
+                )
+            }
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(White)
+                .padding(innerPadding),
+        ) {
+            AnimatedVisibility(
+                visible = showSearch,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    placeholder = { Text("Search tracks or folders", color = Neutral400) },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Neutral500) },
+                    trailingIcon = {
+                        AnimatedVisibility(visible = query.isNotEmpty()) {
+                            IconButton(onClick = { query = "" }) {
+                                Icon(Icons.Filled.Close, contentDescription = "Clear", tint = Neutral500)
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Neutral100,
+                        unfocusedContainerColor = Neutral100,
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        cursorColor = Black,
+                    ),
+                )
+            }
+
+            when {
+                videos.isEmpty() -> EmptyState(Modifier.fillMaxSize().weight(1f))
+                filtered.isEmpty() -> NoResultsState(Modifier.fillMaxSize().weight(1f), query)
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize().weight(1f),
+                    contentPadding = PaddingValues(top = 4.dp),
+                ) {
+                    items(filtered, key = { it.id }) { video ->
+                        TrackRow(video = video, onClick = { onItemClick(video) })
+                        HorizontalDivider(
+                            color = Neutral100,
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(start = 72.dp, end = 16.dp),
+                        )
+                    }
                 }
             }
         }
     }
-}
 
-@Composable
-private fun LibraryHeader(
-    total: Int,
-    query: String,
-    onQueryChange: (String) -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(White)
-            .padding(start = 20.dp, end = 20.dp, top = 28.dp, bottom = 12.dp),
-    ) {
-        Text(
-            text = "Library",
-            style = MaterialTheme.typography.headlineLarge.copy(color = Black),
-        )
-        Text(
-            text = "%d track%s".format(total, if (total == 1) "" else "s"),
-            style = MaterialTheme.typography.bodyMedium.copy(color = Neutral500),
-            modifier = Modifier.padding(top = 2.dp, bottom = 16.dp),
-        )
-
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = {
-                Text("Search tracks or folders", color = Neutral400)
-            },
-            leadingIcon = {
-                Icon(Icons.Filled.Search, contentDescription = null, tint = Neutral500)
-            },
-            trailingIcon = {
-                AnimatedVisibility(visible = query.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
-                    IconButton(onClick = { onQueryChange("") }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Clear", tint = Neutral500)
-                    }
-                }
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Neutral100,
-                unfocusedContainerColor = Neutral100,
-                disabledContainerColor = Neutral100,
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                cursorColor = Black,
-            ),
+    if (showSortSheet) {
+        SortSheet(
+            current = sortMode,
+            onSelect = { sortMode = it; showSortSheet = false },
+            onDismiss = { showSortSheet = false },
         )
     }
 }
@@ -197,7 +246,7 @@ private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(3.dp))
+            Spacer(Modifier.height(2.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -253,6 +302,86 @@ private fun NoResultsState(modifier: Modifier = Modifier, query: String) {
             Text(
                 "Nothing found for \"$query\"",
                 style = MaterialTheme.typography.bodyMedium.copy(color = Neutral500),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SortSheet(
+    current: SortMode,
+    onSelect: (SortMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.padding(bottom = 32.dp)) {
+            Text(
+                "Sort by",
+                style = MaterialTheme.typography.titleLarge.copy(color = Neutral900),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            )
+            SortOption(
+                label = "Newest first",
+                selected = current == SortMode.DATE_DESC,
+                onClick = { onSelect(SortMode.DATE_DESC) },
+            )
+            SortOption(
+                label = "Oldest first",
+                selected = current == SortMode.DATE_ASC,
+                onClick = { onSelect(SortMode.DATE_ASC) },
+            )
+            SortOption(
+                label = "Title A-Z",
+                selected = current == SortMode.TITLE_ASC,
+                onClick = { onSelect(SortMode.TITLE_ASC) },
+            )
+            SortOption(
+                label = "Title Z-A",
+                selected = current == SortMode.TITLE_DESC,
+                onClick = { onSelect(SortMode.TITLE_DESC) },
+            )
+            SortOption(
+                label = "Longest first",
+                selected = current == SortMode.DURATION_DESC,
+                onClick = { onSelect(SortMode.DURATION_DESC) },
+            )
+            SortOption(
+                label = "Shortest first",
+                selected = current == SortMode.DURATION_ASC,
+                onClick = { onSelect(SortMode.DURATION_ASC) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SortOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                color = if (selected) Black else Neutral600,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            ),
+            modifier = Modifier.weight(1f),
+        )
+        if (selected) {
+            Icon(
+                Icons.Filled.FilterList,
+                contentDescription = null,
+                tint = Black,
+                modifier = Modifier.size(20.dp),
             )
         }
     }
