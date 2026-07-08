@@ -34,12 +34,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -93,76 +89,40 @@ fun VideoListScreen(
                 }
             }
             when (sortMode) {
-                SortMode.DATE_DESC  -> base.sortedByDescending { it.dateAdded }
-                SortMode.DATE_ASC   -> base.sortedBy { it.dateAdded }
-                SortMode.TITLE_ASC  -> base.sortedBy { it.title.lowercase() }
+                SortMode.DATE_DESC -> base.sortedByDescending { it.dateAdded }
+                SortMode.DATE_ASC -> base.sortedBy { it.dateAdded }
+                SortMode.TITLE_ASC -> base.sortedBy { it.title.lowercase() }
                 SortMode.TITLE_DESC -> base.sortedByDescending { it.title.lowercase() }
                 SortMode.DURATION_DESC -> base.sortedByDescending { it.durationMs }
-                SortMode.DURATION_ASC  -> base.sortedBy { it.durationMs }
+                SortMode.DURATION_ASC -> base.sortedBy { it.durationMs }
             }
         }
     }
 
-    Scaffold(
-        modifier = modifier,
-        bottomBar = {
-            NavigationBar(
-                containerColor = White,
-                tonalElevation = 2.dp,
-            ) {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
-                    label = { Text("Search") },
-                    selected = showSearch,
-                    onClick = { showSearch = !showSearch },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Black,
-                        unselectedIconColor = Neutral500,
-                        indicatorColor = Neutral100,
-                    ),
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Filled.FilterList, contentDescription = "Sort") },
-                    label = { Text("Sort") },
-                    selected = showSortSheet,
-                    onClick = { showSortSheet = true },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Black,
-                        unselectedIconColor = Neutral500,
-                        indicatorColor = Neutral100,
-                    ),
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
-                    label = { Text("Settings") },
-                    selected = false,
-                    onClick = { onOpenSettings?.invoke() },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Black,
-                        unselectedIconColor = Neutral500,
-                        indicatorColor = Neutral100,
-                    ),
-                )
-            }
-        },
-    ) { innerPadding ->
-        Column(
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(White),
+    ) {
+        Row(
             modifier = Modifier
-                .fillMaxSize()
-                .background(White)
-                .padding(innerPadding),
+                .fillMaxWidth()
+                .padding(end = 4.dp, top = 4.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             AnimatedVisibility(
                 visible = showSearch,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut(),
+                modifier = Modifier.weight(1f),
             ) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                     placeholder = { Text("Search tracks or folders", color = Neutral400) },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Neutral500) },
                     trailingIcon = {
@@ -183,22 +143,33 @@ fun VideoListScreen(
                     ),
                 )
             }
+            if (!showSearch) {
+                IconButton(onClick = { showSearch = true }) {
+                    Icon(Icons.Filled.Search, contentDescription = "Search", tint = Neutral700)
+                }
+            }
+            IconButton(onClick = { showSortSheet = true }) {
+                Icon(Icons.Filled.FilterList, contentDescription = "Sort", tint = Neutral700)
+            }
+            IconButton(onClick = { onOpenSettings?.invoke() }) {
+                Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Neutral700)
+            }
+        }
 
-            when {
-                videos.isEmpty() -> EmptyState(Modifier.fillMaxSize().weight(1f))
-                filtered.isEmpty() -> NoResultsState(Modifier.fillMaxSize().weight(1f), query)
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().weight(1f),
-                    contentPadding = PaddingValues(top = 4.dp),
-                ) {
-                    items(filtered, key = { it.id }) { video ->
-                        TrackRow(video = video, onClick = { onItemClick(video) })
-                        HorizontalDivider(
-                            color = Neutral100,
-                            thickness = 1.dp,
-                            modifier = Modifier.padding(start = 72.dp, end = 16.dp),
-                        )
-                    }
+        when {
+            videos.isEmpty() -> EmptyState(Modifier.fillMaxSize().weight(1f))
+            filtered.isEmpty() -> NoResultsState(Modifier.fillMaxSize().weight(1f), query)
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize().weight(1f),
+                contentPadding = PaddingValues(top = 4.dp),
+            ) {
+                items(filtered, key = { it.id }) { video ->
+                    TrackRow(video = video, onClick = { onItemClick(video) })
+                    HorizontalDivider(
+                        color = Neutral100,
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(start = 72.dp, end = 16.dp),
+                    )
                 }
             }
         }
@@ -321,46 +292,18 @@ private fun SortSheet(
                 style = MaterialTheme.typography.titleLarge.copy(color = Neutral900),
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
             )
-            SortOption(
-                label = "Newest first",
-                selected = current == SortMode.DATE_DESC,
-                onClick = { onSelect(SortMode.DATE_DESC) },
-            )
-            SortOption(
-                label = "Oldest first",
-                selected = current == SortMode.DATE_ASC,
-                onClick = { onSelect(SortMode.DATE_ASC) },
-            )
-            SortOption(
-                label = "Title A-Z",
-                selected = current == SortMode.TITLE_ASC,
-                onClick = { onSelect(SortMode.TITLE_ASC) },
-            )
-            SortOption(
-                label = "Title Z-A",
-                selected = current == SortMode.TITLE_DESC,
-                onClick = { onSelect(SortMode.TITLE_DESC) },
-            )
-            SortOption(
-                label = "Longest first",
-                selected = current == SortMode.DURATION_DESC,
-                onClick = { onSelect(SortMode.DURATION_DESC) },
-            )
-            SortOption(
-                label = "Shortest first",
-                selected = current == SortMode.DURATION_ASC,
-                onClick = { onSelect(SortMode.DURATION_ASC) },
-            )
+            SortOption(label = "Newest first", selected = current == SortMode.DATE_DESC, onClick = { onSelect(SortMode.DATE_DESC) })
+            SortOption(label = "Oldest first", selected = current == SortMode.DATE_ASC, onClick = { onSelect(SortMode.DATE_ASC) })
+            SortOption(label = "Title A-Z", selected = current == SortMode.TITLE_ASC, onClick = { onSelect(SortMode.TITLE_ASC) })
+            SortOption(label = "Title Z-A", selected = current == SortMode.TITLE_DESC, onClick = { onSelect(SortMode.TITLE_DESC) })
+            SortOption(label = "Longest first", selected = current == SortMode.DURATION_DESC, onClick = { onSelect(SortMode.DURATION_DESC) })
+            SortOption(label = "Shortest first", selected = current == SortMode.DURATION_ASC, onClick = { onSelect(SortMode.DURATION_ASC) })
         }
     }
 }
 
 @Composable
-private fun SortOption(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
+private fun SortOption(label: String, selected: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -377,12 +320,7 @@ private fun SortOption(
             modifier = Modifier.weight(1f),
         )
         if (selected) {
-            Icon(
-                Icons.Filled.FilterList,
-                contentDescription = null,
-                tint = Black,
-                modifier = Modifier.size(20.dp),
-            )
+            Icon(Icons.Filled.FilterList, contentDescription = null, tint = Black, modifier = Modifier.size(20.dp))
         }
     }
 }
