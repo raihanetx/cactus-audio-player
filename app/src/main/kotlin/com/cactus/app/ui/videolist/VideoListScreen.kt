@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -34,8 +35,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -77,6 +82,7 @@ fun VideoListScreen(
     var showSearch by remember { mutableStateOf(false) }
     var sortMode by remember { mutableStateOf(SortMode.DATE_DESC) }
     var showSortSheet by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf(0) }
 
     val filtered by remember(videos, query, sortMode) {
         derivedStateOf {
@@ -99,30 +105,93 @@ fun VideoListScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(White),
-    ) {
-        Row(
+    Scaffold(
+        modifier = modifier,
+        bottomBar = {
+            NavigationBar(
+                containerColor = White,
+                tonalElevation = 2.dp,
+            ) {
+                NavigationBarItem(
+                    icon = { Icon(Icons.Filled.LibraryMusic, contentDescription = "Tracks") },
+                    label = { Text("Tracks") },
+                    selected = selectedTab == 0 && !showSearch,
+                    onClick = { selectedTab = 0; showSearch = false; query = "" },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Black,
+                        unselectedIconColor = Neutral500,
+                        indicatorColor = Neutral100,
+                    ),
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
+                    label = { Text("Search") },
+                    selected = showSearch,
+                    onClick = { showSearch = !showSearch; if (showSearch) selectedTab = 1 },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Black,
+                        unselectedIconColor = Neutral500,
+                        indicatorColor = Neutral100,
+                    ),
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Filled.FilterList, contentDescription = "Sort") },
+                    label = { Text("Sort") },
+                    selected = showSortSheet,
+                    onClick = { showSortSheet = true },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Black,
+                        unselectedIconColor = Neutral500,
+                        indicatorColor = Neutral100,
+                    ),
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
+                    label = { Text("Settings") },
+                    selected = false,
+                    onClick = { onOpenSettings?.invoke() },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Black,
+                        unselectedIconColor = Neutral500,
+                        indicatorColor = Neutral100,
+                    ),
+                )
+            }
+        },
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = 4.dp, top = 4.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
+                .fillMaxSize()
+                .background(White)
+                .padding(innerPadding),
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
+            ) {
+                Text(
+                    text = "Cactus",
+                    style = MaterialTheme.typography.displayLarge.copy(color = Black),
+                )
+                Text(
+                    text = "Your videos",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Neutral500),
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+
             AnimatedVisibility(
                 visible = showSearch,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut(),
-                modifier = Modifier.weight(1f),
             ) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     placeholder = { Text("Search tracks or folders", color = Neutral400) },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Neutral500) },
                     trailingIcon = {
@@ -143,33 +212,22 @@ fun VideoListScreen(
                     ),
                 )
             }
-            if (!showSearch) {
-                IconButton(onClick = { showSearch = true }) {
-                    Icon(Icons.Filled.Search, contentDescription = "Search", tint = Neutral700)
-                }
-            }
-            IconButton(onClick = { showSortSheet = true }) {
-                Icon(Icons.Filled.FilterList, contentDescription = "Sort", tint = Neutral700)
-            }
-            IconButton(onClick = { onOpenSettings?.invoke() }) {
-                Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Neutral700)
-            }
-        }
 
-        when {
-            videos.isEmpty() -> EmptyState(Modifier.fillMaxSize().weight(1f))
-            filtered.isEmpty() -> NoResultsState(Modifier.fillMaxSize().weight(1f), query)
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().weight(1f),
-                contentPadding = PaddingValues(top = 4.dp),
-            ) {
-                items(filtered, key = { it.id }) { video ->
-                    TrackRow(video = video, onClick = { onItemClick(video) })
-                    HorizontalDivider(
-                        color = Neutral100,
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(start = 72.dp, end = 16.dp),
-                    )
+            when {
+                videos.isEmpty() -> EmptyState(Modifier.fillMaxSize().weight(1f))
+                filtered.isEmpty() && showSearch -> NoResultsState(Modifier.fillMaxSize().weight(1f), query)
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize().weight(1f),
+                    contentPadding = PaddingValues(top = 4.dp),
+                ) {
+                    items(filtered, key = { it.id }) { video ->
+                        TrackRow(video = video, onClick = { onItemClick(video) })
+                        HorizontalDivider(
+                            color = Neutral100,
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(start = 72.dp, end = 16.dp),
+                        )
+                    }
                 }
             }
         }
@@ -250,6 +308,7 @@ private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
 private fun EmptyState(modifier: Modifier = Modifier) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(Modifier.height(60.dp))
             Text("\uD83C\uDFB5", fontSize = 48.sp)
             Spacer(Modifier.height(16.dp))
             Text("No tracks found", style = MaterialTheme.typography.titleLarge.copy(color = Neutral900))
@@ -266,6 +325,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 private fun NoResultsState(modifier: Modifier = Modifier, query: String) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(Modifier.height(60.dp))
             Text("\uD83D\uDD0D", fontSize = 44.sp)
             Spacer(Modifier.height(16.dp))
             Text("No matches", style = MaterialTheme.typography.titleLarge.copy(color = Neutral900))
