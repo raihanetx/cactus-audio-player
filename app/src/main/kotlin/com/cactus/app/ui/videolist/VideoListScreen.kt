@@ -29,6 +29,8 @@ import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cactus.app.model.VideoItem
 import com.cactus.app.ui.theme.Black
+import com.cactus.app.ui.theme.Blue500
 import com.cactus.app.ui.theme.Neutral100
 import com.cactus.app.ui.theme.Neutral300
 import com.cactus.app.ui.theme.Neutral400
@@ -81,10 +84,6 @@ fun VideoListScreen(
     var sortMode by remember { mutableStateOf(SortMode.DATE_DESC) }
     var showSortSheet by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
-
-    val totalMs by remember(videos) {
-        derivedStateOf { videos.sumOf { it.durationMs } }
-    }
 
     val filtered by remember(videos, query, sortMode) {
         derivedStateOf {
@@ -164,7 +163,6 @@ fun VideoListScreen(
                 TrackListPage(
                     videos = videos,
                     filtered = filtered,
-                    totalMs = totalMs,
                     onItemClick = onItemClick,
                 )
             }
@@ -184,7 +182,6 @@ fun VideoListScreen(
 private fun TrackListPage(
     videos: List<VideoItem>,
     filtered: List<VideoItem>,
-    totalMs: Long,
     onItemClick: (VideoItem) -> Unit,
 ) {
     Column(
@@ -192,33 +189,11 @@ private fun TrackListPage(
             .fillMaxSize()
             .background(White),
     ) {
-        if (videos.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "${filtered.size} track${if (filtered.size != 1) "s" else ""}",
-                    style = MaterialTheme.typography.bodyMedium.copy(color = Neutral500),
-                )
-                Text(
-                    text = formatTotalTime(totalMs),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = Neutral900,
-                        fontWeight = FontWeight.SemiBold,
-                    ),
-                )
-            }
-        }
-
         when {
             videos.isEmpty() -> EmptyState(Modifier.fillMaxSize().weight(1f))
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().weight(1f),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
             ) {
                 items(filtered, key = { it.id }) { video ->
                     TrackRow(video = video, onClick = { onItemClick(video) })
@@ -336,22 +311,35 @@ private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(4.dp))
+            val sub = hasSubtitle(video.path)
             Row(
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Icon(
+                    Icons.Filled.Schedule,
+                    contentDescription = null,
+                    tint = Neutral400,
+                    modifier = Modifier.size(14.dp),
+                )
                 Text(
                     formatDuration(video.durationMs),
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = Neutral900,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                     ),
                 )
                 Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
+                Icon(
+                    Icons.Filled.Subtitles,
+                    contentDescription = null,
+                    tint = if (sub) Blue500 else Neutral300,
+                    modifier = Modifier.size(14.dp),
+                )
                 Text(
-                    if (hasSubtitle(video.path)) "Generated" else "Not Generated",
+                    if (sub) "Subtitles" else "No subtitles",
                     style = MaterialTheme.typography.bodySmall.copy(
-                        color = if (hasSubtitle(video.path)) Neutral600 else Neutral400,
+                        color = if (sub) Blue500 else Neutral400,
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -473,17 +461,6 @@ private fun formatDuration(ms: Long): String {
     val m = (totalSec % 3600) / 60
     val s = totalSec % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
-}
-
-private fun formatTotalTime(ms: Long): String {
-    val totalSec = ms / 1000
-    val h = totalSec / 3600
-    val m = (totalSec % 3600) / 60
-    return buildString {
-        if (h > 0) append("${h}h ")
-        append("${m}m")
-        append(" total")
-    }
 }
 
 private fun formatFileSize(bytes: Long): String {
