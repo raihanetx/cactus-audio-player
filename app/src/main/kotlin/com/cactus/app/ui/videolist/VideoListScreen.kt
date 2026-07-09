@@ -26,7 +26,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -345,18 +344,10 @@ private fun TrackRow(video: VideoItem, totalMs: Long, onClick: () -> Unit) {
                 Text(
                     "Total time spent ${formatTotalHours(totalMs)}",
                     style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
         }
-
-        Icon(
-            Icons.Filled.PlayArrow,
-            contentDescription = "Play",
-            tint = Neutral700,
-            modifier = Modifier.size(24.dp),
-        )
     }
 }
 
