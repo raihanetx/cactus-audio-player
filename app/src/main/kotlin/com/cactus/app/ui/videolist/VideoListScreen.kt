@@ -1,10 +1,9 @@
 package com.cactus.app.ui.videolist
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,19 +17,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,7 +52,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -86,13 +86,9 @@ fun VideoListScreen(
 
     val filtered by remember(videos, query, sortMode) {
         derivedStateOf {
-            val base = if (query.isBlank()) {
-                videos
-            } else {
-                videos.filter {
-                    it.title.contains(query, ignoreCase = true) ||
-                        getParentFolder(it.path).contains(query, ignoreCase = true)
-                }
+            val base = if (query.isBlank()) videos else videos.filter {
+                it.title.contains(query, ignoreCase = true) ||
+                    getParentFolder(it.path).contains(query, ignoreCase = true)
             }
             when (sortMode) {
                 SortMode.DATE_DESC -> base.sortedByDescending { it.dateAdded }
@@ -117,98 +113,60 @@ fun VideoListScreen(
                     label = { Text("Tracks") },
                     selected = selectedTab == 0 && !showSearch,
                     onClick = { selectedTab = 0; showSearch = false; query = "" },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Black,
-                        unselectedIconColor = Neutral500,
-                        indicatorColor = Neutral100,
-                    ),
+                    colors = itemColors(),
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
                     label = { Text("Search") },
                     selected = showSearch,
-                    onClick = { showSearch = !showSearch; if (showSearch) selectedTab = 1 },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Black,
-                        unselectedIconColor = Neutral500,
-                        indicatorColor = Neutral100,
-                    ),
+                    onClick = { showSearch = true; selectedTab = 1 },
+                    colors = itemColors(),
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Filled.FilterList, contentDescription = "Sort") },
                     label = { Text("Sort") },
                     selected = showSortSheet,
                     onClick = { showSortSheet = true },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Black,
-                        unselectedIconColor = Neutral500,
-                        indicatorColor = Neutral100,
-                    ),
+                    colors = itemColors(),
                 )
                 NavigationBarItem(
                     icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
                     label = { Text("Settings") },
                     selected = false,
                     onClick = { onOpenSettings?.invoke() },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Black,
-                        unselectedIconColor = Neutral500,
-                        indicatorColor = Neutral100,
-                    ),
+                    colors = itemColors(),
                 )
             }
         },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(White)
-                .padding(innerPadding),
-        ) {
-            AnimatedVisibility(
-                visible = showSearch,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut(),
-            ) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = { Text("Search tracks or folders", color = Neutral400) },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Neutral500) },
-                    trailingIcon = {
-                        AnimatedVisibility(visible = query.isNotEmpty()) {
-                            IconButton(onClick = { query = "" }) {
-                                Icon(Icons.Filled.Close, contentDescription = "Clear", tint = Neutral500)
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Neutral100,
-                        unfocusedContainerColor = Neutral100,
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        cursorColor = Black,
-                    ),
-                )
-            }
-
-            when {
-                videos.isEmpty() -> EmptyState(Modifier.fillMaxSize().weight(1f))
-                filtered.isEmpty() && showSearch -> NoResultsState(Modifier.fillMaxSize().weight(1f), query)
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().weight(1f),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    items(filtered, key = { it.id }) { video ->
-                        TrackCard(video = video, onClick = { onItemClick(video) })
-                    }
+        AnimatedContent(
+            targetState = showSearch,
+            modifier = Modifier.padding(innerPadding),
+            transitionSpec = {
+                if (targetState) {
+                    slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                } else {
+                    slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
                 }
+            },
+        ) { isSearch ->
+            if (isSearch) {
+                SearchPage(
+                    query = query,
+                    onQueryChange = { query = it },
+                    onBack = { showSearch = false; selectedTab = 0 },
+                    results = filtered,
+                    onItemClick = onItemClick,
+                )
+            } else {
+                TrackListPage(
+                    videos = videos,
+                    filtered = filtered,
+                    query = query,
+                    showSearch = false,
+                    onQueryChange = {},
+                    onItemClick = onItemClick,
+                )
             }
         }
     }
@@ -223,80 +181,179 @@ fun VideoListScreen(
 }
 
 @Composable
-private fun TrackCard(video: VideoItem, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Neutral100),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        onClick = onClick,
+private fun TrackListPage(
+    videos: List<VideoItem>,
+    filtered: List<VideoItem>,
+    query: String,
+    showSearch: Boolean,
+    onQueryChange: (String) -> Unit,
+    onItemClick: (VideoItem) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(White),
+    ) {
+        when {
+            videos.isEmpty() -> EmptyState(Modifier.fillMaxSize().weight(1f))
+            filtered.isEmpty() && showSearch -> NoResultsState(Modifier.fillMaxSize().weight(1f), query)
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize().weight(1f),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(filtered, key = { it.id }) { video ->
+                    TrackRow(video = video, onClick = { onItemClick(video) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchPage(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onBack: () -> Unit,
+    results: List<VideoItem>,
+    onItemClick: (VideoItem) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(White),
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        androidx.compose.ui.graphics.Brush.linearGradient(
-                            colors = listOf(Neutral300, Neutral400),
-                        )
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.LibraryMusic,
-                    contentDescription = null,
-                    tint = White,
-                    modifier = Modifier.size(28.dp),
-                )
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Neutral700)
             }
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Search tracks or folders", color = Neutral400) },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Neutral500) },
+                trailingIcon = {
+                    if (query.isNotEmpty()) {
+                        IconButton(onClick = { onQueryChange("") }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Clear", tint = Neutral500)
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Neutral100,
+                    unfocusedContainerColor = Neutral100,
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    cursorColor = Black,
+                ),
+            )
+        }
 
-            Column(modifier = Modifier.weight(1f)) {
+        if (results.isEmpty() && query.isNotEmpty()) {
+            NoResultsState(Modifier.fillMaxSize().weight(1f), query)
+        } else if (results.isNotEmpty()) {
+            Text(
+                text = "${results.size} result${if (results.size != 1) "s" else ""}",
+                style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
+                modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 4.dp),
+            )
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().weight(1f),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(results, key = { it.id }) { video ->
+                    TrackRow(video = video, onClick = { onItemClick(video) })
+                }
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Filled.Search, contentDescription = null, tint = Neutral300, modifier = Modifier.size(56.dp))
+                    Spacer(Modifier.height(16.dp))
+                    Text("Type to search", style = MaterialTheme.typography.bodyLarge.copy(color = Neutral500))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .background(Neutral100),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = getInitials(video.title),
+                color = Neutral900,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = video.title.ifBlank { "Untitled" },
+                style = MaterialTheme.typography.titleMedium.copy(color = Neutral900),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(3.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
-                    text = video.title.ifBlank { "Untitled" },
-                    style = MaterialTheme.typography.titleMedium.copy(color = Neutral900),
+                    formatDuration(video.durationMs),
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Neutral900,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                )
+                Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    formatFileSize(video.sizeBytes),
+                    style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        getParentFolder(video.path),
-                        style = MaterialTheme.typography.bodySmall.copy(color = Neutral600),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    Text("\u00B7", color = Neutral400, style = MaterialTheme.typography.bodySmall)
-                    Text(
-                        formatDuration(video.durationMs),
-                        style = MaterialTheme.typography.bodySmall.copy(color = Neutral600),
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(White),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.PlayArrow,
-                    contentDescription = "Play",
-                    tint = Neutral700,
-                    modifier = Modifier.size(24.dp),
+                Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    getParentFolder(video.path),
+                    style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
         }
+
+        Icon(
+            Icons.Filled.PlayArrow,
+            contentDescription = "Play",
+            tint = Neutral700,
+            modifier = Modifier.size(24.dp),
+        )
     }
 }
 
@@ -379,6 +436,18 @@ private fun SortOption(label: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
+@Composable
+private fun itemColors() = NavigationBarItemDefaults.colors(
+    selectedIconColor = Black,
+    unselectedIconColor = Neutral500,
+    indicatorColor = Neutral100,
+)
+
+private fun getInitials(title: String): String {
+    if (title.isBlank()) return "?"
+    return title.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercase() }.joinToString("")
+}
+
 private fun formatDuration(ms: Long): String {
     if (ms <= 0) return "0:00"
     val totalSec = ms / 1000
@@ -386,6 +455,14 @@ private fun formatDuration(ms: Long): String {
     val m = (totalSec % 3600) / 60
     val s = totalSec % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+}
+
+private fun formatFileSize(bytes: Long): String {
+    return when {
+        bytes < 1024 -> "$bytes B"
+        bytes < 1024 * 1024 -> "%.1f KB".format(bytes / 1024f)
+        else -> "%.1f MB".format(bytes / (1024f * 1024f))
+    }
 }
 
 private fun getParentFolder(path: String): String {
