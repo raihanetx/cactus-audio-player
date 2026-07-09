@@ -29,8 +29,6 @@ import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -84,10 +82,6 @@ fun VideoListScreen(
     var sortMode by remember { mutableStateOf(SortMode.DATE_DESC) }
     var showSortSheet by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
-
-    val totalMs by remember(videos) {
-        derivedStateOf { videos.sumOf { it.durationMs } }
-    }
 
     val filtered by remember(videos, query, sortMode) {
         derivedStateOf {
@@ -167,7 +161,6 @@ fun VideoListScreen(
                 TrackListPage(
                     videos = videos,
                     filtered = filtered,
-                    totalMs = totalMs,
                     onItemClick = onItemClick,
                 )
             }
@@ -187,7 +180,6 @@ fun VideoListScreen(
 private fun TrackListPage(
     videos: List<VideoItem>,
     filtered: List<VideoItem>,
-    totalMs: Long,
     onItemClick: (VideoItem) -> Unit,
 ) {
     Column(
@@ -205,20 +197,7 @@ private fun TrackListPage(
                     TrackRow(video = video, onClick = { onItemClick(video) })
                 }
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 28.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "Total time spent · ${formatTotalTime(totalMs)}",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = Neutral400,
-                                fontWeight = FontWeight.Medium,
-                            ),
-                        )
-                    }
+                    Spacer(Modifier.height(8.dp))
                 }
             }
         }
@@ -338,12 +317,6 @@ private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    Icons.Filled.Schedule,
-                    contentDescription = null,
-                    tint = Neutral400,
-                    modifier = Modifier.size(14.dp),
-                )
                 Text(
                     formatDuration(video.durationMs),
                     style = MaterialTheme.typography.bodySmall.copy(
@@ -352,12 +325,6 @@ private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
                     ),
                 )
                 Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
-                Icon(
-                    Icons.Filled.Subtitles,
-                    contentDescription = null,
-                    tint = if (sub) Blue500 else Neutral300,
-                    modifier = Modifier.size(14.dp),
-                )
                 Text(
                     if (sub) "Subtitles" else "No subtitles",
                     style = MaterialTheme.typography.bodySmall.copy(
@@ -476,16 +443,6 @@ private fun formatDuration(ms: Long): String {
     val m = (totalSec % 3600) / 60
     val s = totalSec % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
-}
-
-private fun formatTotalTime(ms: Long): String {
-    val totalSec = ms / 1000
-    val h = totalSec / 3600
-    val m = (totalSec % 3600) / 60
-    return buildString {
-        if (h > 0) append("${h}h ")
-        append("${m}m")
-    }
 }
 
 private fun hasSubtitle(path: String): Boolean {
