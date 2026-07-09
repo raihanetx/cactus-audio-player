@@ -85,6 +85,10 @@ fun VideoListScreen(
     var showSortSheet by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
 
+    val totalMs by remember(videos) {
+        derivedStateOf { videos.sumOf { it.durationMs } }
+    }
+
     val filtered by remember(videos, query, sortMode) {
         derivedStateOf {
             val base = if (query.isBlank()) videos else videos.filter {
@@ -163,6 +167,7 @@ fun VideoListScreen(
                 TrackListPage(
                     videos = videos,
                     filtered = filtered,
+                    totalMs = totalMs,
                     onItemClick = onItemClick,
                 )
             }
@@ -182,6 +187,7 @@ fun VideoListScreen(
 private fun TrackListPage(
     videos: List<VideoItem>,
     filtered: List<VideoItem>,
+    totalMs: Long,
     onItemClick: (VideoItem) -> Unit,
 ) {
     Column(
@@ -197,6 +203,22 @@ private fun TrackListPage(
             ) {
                 items(filtered, key = { it.id }) { video ->
                     TrackRow(video = video, onClick = { onItemClick(video) })
+                }
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 28.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Total time spent · ${formatTotalTime(totalMs)}",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = Neutral400,
+                                fontWeight = FontWeight.Medium,
+                            ),
+                        )
+                    }
                 }
             }
         }
@@ -344,13 +366,6 @@ private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
-                Text(
-                    formatFileSize(video.sizeBytes),
-                    style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
         }
 
@@ -463,11 +478,13 @@ private fun formatDuration(ms: Long): String {
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
 
-private fun formatFileSize(bytes: Long): String {
-    return when {
-        bytes < 1024 -> "$bytes B"
-        bytes < 1024 * 1024 -> "%.1f KB".format(bytes / 1024f)
-        else -> "%.1f MB".format(bytes / (1024f * 1024f))
+private fun formatTotalTime(ms: Long): String {
+    val totalSec = ms / 1000
+    val h = totalSec / 3600
+    val m = (totalSec % 3600) / 60
+    return buildString {
+        if (h > 0) append("${h}h ")
+        append("${m}m")
     }
 }
 
