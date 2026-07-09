@@ -18,10 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -30,8 +28,9 @@ import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -109,8 +109,8 @@ fun VideoListScreen(
         modifier = modifier,
         bottomBar = {
             NavigationBar(
-                containerColor = White,
-                tonalElevation = 2.dp,
+                containerColor = Color.Transparent,
+                tonalElevation = 0.dp,
             ) {
                 NavigationBarItem(
                     icon = { Icon(Icons.Filled.LibraryMusic, contentDescription = "Tracks") },
@@ -165,22 +165,6 @@ fun VideoListScreen(
                 .background(White)
                 .padding(innerPadding),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
-            ) {
-                Text(
-                    text = "Cactus",
-                    style = MaterialTheme.typography.displayLarge.copy(color = Black),
-                )
-                Text(
-                    text = "Your videos",
-                    style = MaterialTheme.typography.bodyMedium.copy(color = Neutral500),
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-
             AnimatedVisibility(
                 visible = showSearch,
                 enter = expandVertically() + fadeIn(),
@@ -218,15 +202,11 @@ fun VideoListScreen(
                 filtered.isEmpty() && showSearch -> NoResultsState(Modifier.fillMaxSize().weight(1f), query)
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize().weight(1f),
-                    contentPadding = PaddingValues(top = 4.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     items(filtered, key = { it.id }) { video ->
-                        TrackRow(video = video, onClick = { onItemClick(video) })
-                        HorizontalDivider(
-                            color = Neutral100,
-                            thickness = 1.dp,
-                            modifier = Modifier.padding(start = 72.dp, end = 16.dp),
-                        )
+                        TrackCard(video = video, onClick = { onItemClick(video) })
                     }
                 }
             }
@@ -243,64 +223,80 @@ fun VideoListScreen(
 }
 
 @Composable
-private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(White)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+private fun TrackCard(video: VideoItem, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Neutral100),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        onClick = onClick,
     ) {
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
-                .background(Neutral100),
-            contentAlignment = Alignment.Center,
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = getInitials(video.title),
-                color = Neutral900,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Black,
-            )
-        }
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = video.title.ifBlank { "Untitled" },
-                style = MaterialTheme.typography.titleMedium.copy(color = Neutral900),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(2.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        androidx.compose.ui.graphics.Brush.linearGradient(
+                            colors = listOf(Neutral300, Neutral400),
+                        )
+                    ),
+                contentAlignment = Alignment.Center,
             ) {
+                Icon(
+                    Icons.Filled.LibraryMusic,
+                    contentDescription = null,
+                    tint = White,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    getParentFolder(video.path),
-                    style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
+                    text = video.title.ifBlank { "Untitled" },
+                    style = MaterialTheme.typography.titleMedium.copy(color = Neutral900),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
                 )
-                Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
-                Text(
-                    formatDuration(video.durationMs),
-                    style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        getParentFolder(video.path),
+                        style = MaterialTheme.typography.bodySmall.copy(color = Neutral600),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    Text("\u00B7", color = Neutral400, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        formatDuration(video.durationMs),
+                        style = MaterialTheme.typography.bodySmall.copy(color = Neutral600),
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(White),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.PlayArrow,
+                    contentDescription = "Play",
+                    tint = Neutral700,
+                    modifier = Modifier.size(24.dp),
                 )
             }
         }
-
-        Icon(
-            Icons.Filled.PlayArrow,
-            contentDescription = "Play",
-            tint = Neutral700,
-            modifier = Modifier.size(24.dp),
-        )
     }
 }
 
@@ -308,7 +304,6 @@ private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
 private fun EmptyState(modifier: Modifier = Modifier) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(Modifier.height(60.dp))
             Text("\uD83C\uDFB5", fontSize = 48.sp)
             Spacer(Modifier.height(16.dp))
             Text("No tracks found", style = MaterialTheme.typography.titleLarge.copy(color = Neutral900))
@@ -325,7 +320,6 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 private fun NoResultsState(modifier: Modifier = Modifier, query: String) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(Modifier.height(60.dp))
             Text("\uD83D\uDD0D", fontSize = 44.sp)
             Spacer(Modifier.height(16.dp))
             Text("No matches", style = MaterialTheme.typography.titleLarge.copy(color = Neutral900))
@@ -392,11 +386,6 @@ private fun formatDuration(ms: Long): String {
     val m = (totalSec % 3600) / 60
     val s = totalSec % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
-}
-
-private fun getInitials(title: String): String {
-    if (title.isBlank()) return "?"
-    return title.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercase() }.joinToString("")
 }
 
 private fun getParentFolder(path: String): String {
