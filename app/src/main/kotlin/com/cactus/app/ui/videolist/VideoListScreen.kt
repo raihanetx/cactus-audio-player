@@ -318,11 +318,11 @@ private fun TrackRow(video: VideoItem, totalMs: Long, onClick: () -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
             val sub = hasSubtitle(video.path)
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     formatDuration(video.durationMs),
@@ -331,20 +331,27 @@ private fun TrackRow(video: VideoItem, totalMs: Long, onClick: () -> Unit) {
                         fontWeight = FontWeight.Medium,
                     ),
                 )
-                Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (sub) Blue500.copy(alpha = 0.12f) else Neutral100)
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                ) {
+                    Text(
+                        if (sub) "Generated" else "Not Generated",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = if (sub) Blue500 else Neutral500,
+                            fontSize = 11.sp,
+                        ),
+                    )
+                }
+                Spacer(Modifier.weight(1f))
                 Text(
-                    if (sub) "Generated" else "Not Generated",
+                    "Total ${formatTotalHours(totalMs)}",
                     style = MaterialTheme.typography.bodySmall.copy(
-                        color = if (sub) Blue500 else Neutral400,
+                        color = Neutral400,
+                        fontSize = 11.sp,
                     ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
-                Text(
-                    "Total time spent ${formatTotalHours(totalMs)}",
-                    style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
-                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
         }
