@@ -83,6 +83,10 @@ fun VideoListScreen(
     var showSortSheet by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
 
+    val totalMs by remember(videos) {
+        derivedStateOf { videos.sumOf { it.durationMs } }
+    }
+
     val filtered by remember(videos, query, sortMode) {
         derivedStateOf {
             val base = if (query.isBlank()) videos else videos.filter {
@@ -155,12 +159,14 @@ fun VideoListScreen(
                     onQueryChange = { query = it },
                     onBack = { showSearch = false; selectedTab = 0 },
                     results = filtered,
+                    totalMs = totalMs,
                     onItemClick = onItemClick,
                 )
             } else {
                 TrackListPage(
                     videos = videos,
                     filtered = filtered,
+                    totalMs = totalMs,
                     onItemClick = onItemClick,
                 )
             }
@@ -180,6 +186,7 @@ fun VideoListScreen(
 private fun TrackListPage(
     videos: List<VideoItem>,
     filtered: List<VideoItem>,
+    totalMs: Long,
     onItemClick: (VideoItem) -> Unit,
 ) {
     Column(
@@ -194,7 +201,7 @@ private fun TrackListPage(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
             ) {
                 items(filtered, key = { it.id }) { video ->
-                    TrackRow(video = video, onClick = { onItemClick(video) })
+                    TrackRow(video = video, totalMs = totalMs, onClick = { onItemClick(video) })
                 }
                 item {
                     Spacer(Modifier.height(8.dp))
@@ -210,6 +217,7 @@ private fun SearchPage(
     onQueryChange: (String) -> Unit,
     onBack: () -> Unit,
     results: List<VideoItem>,
+    totalMs: Long,
     onItemClick: (VideoItem) -> Unit,
 ) {
     Column(
@@ -264,7 +272,7 @@ private fun SearchPage(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 8.dp),
             ) {
                 items(results, key = { it.id }) { video ->
-                    TrackRow(video = video, onClick = { onItemClick(video) })
+                    TrackRow(video = video, totalMs = totalMs, onClick = { onItemClick(video) })
                 }
             }
         } else {
@@ -280,7 +288,7 @@ private fun SearchPage(
 }
 
 @Composable
-private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
+private fun TrackRow(video: VideoItem, totalMs: Long, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -326,10 +334,17 @@ private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
                 )
                 Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    if (sub) "Subtitles" else "No subtitles",
+                    if (sub) "Generated" else "Not Generated",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = if (sub) Blue500 else Neutral400,
                     ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Total time spent ${formatTotalHours(totalMs)}",
+                    style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -443,6 +458,13 @@ private fun formatDuration(ms: Long): String {
     val m = (totalSec % 3600) / 60
     val s = totalSec % 60
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+}
+
+private fun formatTotalHours(ms: Long): String {
+    val totalMin = ms / 60000
+    val h = totalMin / 60
+    val m = totalMin % 60
+    return if (m > 0) "${h}h ${m}m" else "${h}h"
 }
 
 private fun hasSubtitle(path: String): Boolean {
