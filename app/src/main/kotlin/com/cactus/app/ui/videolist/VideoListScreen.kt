@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -31,7 +30,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -83,6 +81,10 @@ fun VideoListScreen(
     var sortMode by remember { mutableStateOf(SortMode.DATE_DESC) }
     var showSortSheet by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
+
+    val totalMs by remember(videos) {
+        derivedStateOf { videos.sumOf { it.durationMs } }
+    }
 
     val filtered by remember(videos, query, sortMode) {
         derivedStateOf {
@@ -162,9 +164,7 @@ fun VideoListScreen(
                 TrackListPage(
                     videos = videos,
                     filtered = filtered,
-                    query = query,
-                    showSearch = false,
-                    onQueryChange = {},
+                    totalMs = totalMs,
                     onItemClick = onItemClick,
                 )
             }
@@ -184,9 +184,7 @@ fun VideoListScreen(
 private fun TrackListPage(
     videos: List<VideoItem>,
     filtered: List<VideoItem>,
-    query: String,
-    showSearch: Boolean,
-    onQueryChange: (String) -> Unit,
+    totalMs: Long,
     onItemClick: (VideoItem) -> Unit,
 ) {
     Column(
@@ -194,13 +192,33 @@ private fun TrackListPage(
             .fillMaxSize()
             .background(White),
     ) {
+        if (videos.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "${filtered.size} track${if (filtered.size != 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Neutral500),
+                )
+                Text(
+                    text = formatTotalTime(totalMs),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = Neutral900,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                )
+            }
+        }
+
         when {
             videos.isEmpty() -> EmptyState(Modifier.fillMaxSize().weight(1f))
-            filtered.isEmpty() && showSearch -> NoResultsState(Modifier.fillMaxSize().weight(1f), query)
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().weight(1f),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 8.dp),
             ) {
                 items(filtered, key = { it.id }) { video ->
                     TrackRow(video = video, onClick = { onItemClick(video) })
@@ -268,7 +286,6 @@ private fun SearchPage(
             LazyColumn(
                 modifier = Modifier.fillMaxSize().weight(1f),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 items(results, key = { it.id }) { video ->
                     TrackRow(video = video, onClick = { onItemClick(video) })
@@ -292,7 +309,7 @@ private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 10.dp),
+            .padding(horizontal = 4.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -318,9 +335,9 @@ private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(3.dp))
+            Spacer(Modifier.height(4.dp))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -332,18 +349,19 @@ private fun TrackRow(video: VideoItem, onClick: () -> Unit) {
                 )
                 Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    formatFileSize(video.sizeBytes),
-                    style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
+                    if (hasSubtitle(video.path)) "Generated" else "Not Generated",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = if (hasSubtitle(video.path)) Neutral600 else Neutral400,
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    getParentFolder(video.path),
+                    formatFileSize(video.sizeBytes),
                     style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
         }
@@ -457,12 +475,33 @@ private fun formatDuration(ms: Long): String {
     return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
 
+private fun formatTotalTime(ms: Long): String {
+    val totalSec = ms / 1000
+    val h = totalSec / 3600
+    val m = (totalSec % 3600) / 60
+    return buildString {
+        if (h > 0) append("${h}h ")
+        append("${m}m")
+        append(" total")
+    }
+}
+
 private fun formatFileSize(bytes: Long): String {
     return when {
         bytes < 1024 -> "$bytes B"
         bytes < 1024 * 1024 -> "%.1f KB".format(bytes / 1024f)
         else -> "%.1f MB".format(bytes / (1024f * 1024f))
     }
+}
+
+private fun hasSubtitle(path: String): Boolean {
+    return try {
+        val file = File(path)
+        val base = file.parentFile?.resolve(file.nameWithoutExtension) ?: return false
+        listOf(".srt", ".vtt", ".sub", ".sbv", ".ass", ".ssa").any {
+            File(base.path + it).exists()
+        }
+    } catch (_: Exception) { false }
 }
 
 private fun getParentFolder(path: String): String {
