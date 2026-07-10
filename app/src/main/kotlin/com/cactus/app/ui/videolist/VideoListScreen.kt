@@ -23,9 +23,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,6 +41,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -54,19 +57,32 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cactus.app.model.VideoItem
-import com.cactus.app.ui.theme.Black
-import com.cactus.app.ui.theme.Blue500
-import com.cactus.app.ui.theme.Neutral100
-import com.cactus.app.ui.theme.Neutral300
-import com.cactus.app.ui.theme.Neutral400
-import com.cactus.app.ui.theme.Neutral500
-import com.cactus.app.ui.theme.Neutral600
-import com.cactus.app.ui.theme.Neutral700
-import com.cactus.app.ui.theme.Neutral900
-import com.cactus.app.ui.theme.White
 import java.io.File
 
 private enum class SortMode { DATE_DESC, DATE_ASC, TITLE_ASC, TITLE_DESC, DURATION_DESC, DURATION_ASC }
+
+private val Zinc900 = Color(0xFF18181B)
+private val Zinc800 = Color(0xFF27272A)
+private val Zinc700 = Color(0xFF3F3F46)
+private val Zinc600 = Color(0xFF52525B)
+private val Zinc500 = Color(0xFF71717A)
+private val Zinc400 = Color(0xFFA1A1AA)
+private val Zinc300 = Color(0xFFD4D4D8)
+private val Emerald500 = Color(0xFF10B981)
+
+private val DarkColorScheme = darkColorScheme(
+    background = Zinc900,
+    onBackground = Color.White,
+    surface = Zinc900,
+    onSurface = Color.White,
+    surfaceVariant = Zinc800,
+    onSurfaceVariant = Zinc400,
+    outline = Zinc800,
+    outlineVariant = Zinc700,
+    primary = Emerald500,
+    onPrimary = Color.White,
+    secondary = Zinc400,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,6 +97,7 @@ fun VideoListScreen(
     var sortMode by remember { mutableStateOf(SortMode.DATE_DESC) }
     var showSortSheet by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
+    var activeId by remember { mutableStateOf<Long?>(null) }
 
     val totalMs by remember(videos) {
         derivedStateOf { videos.sumOf { it.durationMs } }
@@ -103,81 +120,91 @@ fun VideoListScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier,
-        bottomBar = {
-            NavigationBar(
-                containerColor = Color.Transparent,
-                tonalElevation = 0.dp,
-            ) {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Filled.LibraryMusic, contentDescription = "Tracks") },
-                    label = { Text("Tracks") },
-                    selected = selectedTab == 0 && !showSearch,
-                    onClick = { selectedTab = 0; showSearch = false; query = "" },
-                    colors = itemColors(),
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
-                    label = { Text("Search") },
-                    selected = showSearch,
-                    onClick = { showSearch = true; selectedTab = 1 },
-                    colors = itemColors(),
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Filled.FilterList, contentDescription = "Sort") },
-                    label = { Text("Sort") },
-                    selected = showSortSheet,
-                    onClick = { showSortSheet = true },
-                    colors = itemColors(),
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
-                    label = { Text("Settings") },
-                    selected = false,
-                    onClick = { onOpenSettings?.invoke() },
-                    colors = itemColors(),
-                )
-            }
-        },
-    ) { innerPadding ->
-        AnimatedContent(
-            targetState = showSearch,
-            modifier = Modifier.padding(innerPadding),
-            transitionSpec = {
-                if (targetState) {
-                    slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
-                } else {
-                    slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
+    MaterialTheme(colorScheme = DarkColorScheme) {
+        Scaffold(
+            modifier = modifier,
+            bottomBar = {
+                NavigationBar(
+                    containerColor = Zinc900,
+                    tonalElevation = 0.dp,
+                ) {
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Filled.LibraryMusic, contentDescription = "Tracks") },
+                        label = { Text("Tracks") },
+                        selected = selectedTab == 0 && !showSearch,
+                        onClick = { selectedTab = 0; showSearch = false; query = "" },
+                        colors = itemColors(),
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
+                        label = { Text("Search") },
+                        selected = showSearch,
+                        onClick = { showSearch = true; selectedTab = 1 },
+                        colors = itemColors(),
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Filled.FilterList, contentDescription = "Sort") },
+                        label = { Text("Sort") },
+                        selected = showSortSheet,
+                        onClick = { showSortSheet = true },
+                        colors = itemColors(),
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
+                        label = { Text("Settings") },
+                        selected = false,
+                        onClick = { onOpenSettings?.invoke() },
+                        colors = itemColors(),
+                    )
                 }
             },
-        ) { isSearch ->
-            if (isSearch) {
-                SearchPage(
-                    query = query,
-                    onQueryChange = { query = it },
-                    onBack = { showSearch = false; selectedTab = 0 },
-                    results = filtered,
-                    totalMs = totalMs,
-                    onItemClick = onItemClick,
-                )
-            } else {
-                TrackListPage(
-                    videos = videos,
-                    filtered = filtered,
-                    totalMs = totalMs,
-                    onItemClick = onItemClick,
-                )
+        ) { innerPadding ->
+            AnimatedContent(
+                targetState = showSearch,
+                modifier = Modifier.padding(innerPadding),
+                transitionSpec = {
+                    if (targetState) {
+                        slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                    } else {
+                        slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
+                    }
+                },
+            ) { isSearch ->
+                if (isSearch) {
+                    SearchPage(
+                        query = query,
+                        onQueryChange = { query = it },
+                        onBack = { showSearch = false; selectedTab = 0 },
+                        results = filtered,
+                        activeId = activeId,
+                        totalMs = totalMs,
+                        onItemClick = { video ->
+                            activeId = video.id
+                            onItemClick(video)
+                        },
+                    )
+                } else {
+                    TrackListPage(
+                        videos = videos,
+                        filtered = filtered,
+                        totalMs = totalMs,
+                        activeId = activeId,
+                        onItemClick = { video ->
+                            activeId = video.id
+                            onItemClick(video)
+                        },
+                    )
+                }
             }
         }
-    }
 
-    if (showSortSheet) {
-        SortSheet(
-            current = sortMode,
-            onSelect = { sortMode = it; showSortSheet = false },
-            onDismiss = { showSortSheet = false },
-        )
+        if (showSortSheet) {
+            SortSheet(
+                current = sortMode,
+                onSelect = { sortMode = it; showSortSheet = false },
+                onDismiss = { showSortSheet = false },
+            )
+        }
     }
 }
 
@@ -186,24 +213,46 @@ private fun TrackListPage(
     videos: List<VideoItem>,
     filtered: List<VideoItem>,
     totalMs: Long,
+    activeId: Long?,
     onItemClick: (VideoItem) -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(White),
+            .background(Zinc900),
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 48.dp, bottom = 8.dp),
+        ) {
+            Text(
+                text = "Your Audio Library",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "${videos.size} tracks · ${formatTotalHours(totalMs)}",
+                fontSize = 14.sp,
+                color = Zinc400,
+            )
+        }
+
         when {
             videos.isEmpty() -> EmptyState(Modifier.fillMaxSize().weight(1f))
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().weight(1f),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             ) {
                 items(filtered, key = { it.id }) { video ->
-                    TrackRow(video = video, totalMs = totalMs, onClick = { onItemClick(video) })
-                }
-                item {
-                    Spacer(Modifier.height(8.dp))
+                    TrackRow(
+                        video = video,
+                        active = video.id == activeId,
+                        totalMs = totalMs,
+                        onClick = { onItemClick(video) },
+                    )
                 }
             }
         }
@@ -216,44 +265,45 @@ private fun SearchPage(
     onQueryChange: (String) -> Unit,
     onBack: () -> Unit,
     results: List<VideoItem>,
+    activeId: Long?,
     totalMs: Long,
     onItemClick: (VideoItem) -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(White),
+            .background(Zinc900),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+                .padding(start = 4.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Neutral700)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Zinc400)
             }
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Search tracks or folders", color = Neutral400) },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Neutral500) },
+                placeholder = { Text("Search tracks or folders", color = Zinc500) },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Zinc500) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Clear", tint = Neutral500)
+                            Icon(Icons.Filled.Close, contentDescription = "Clear", tint = Zinc500)
                         }
                     }
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Neutral100,
-                    unfocusedContainerColor = Neutral100,
+                    focusedContainerColor = Zinc800,
+                    unfocusedContainerColor = Zinc800,
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
-                    cursorColor = Black,
+                    cursorColor = Emerald500,
                 ),
             )
         }
@@ -263,23 +313,29 @@ private fun SearchPage(
         } else if (results.isNotEmpty()) {
             Text(
                 text = "${results.size} result${if (results.size != 1) "s" else ""}",
-                style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
+                fontSize = 13.sp,
+                color = Zinc500,
                 modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 4.dp),
             )
             LazyColumn(
                 modifier = Modifier.fillMaxSize().weight(1f),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             ) {
                 items(results, key = { it.id }) { video ->
-                    TrackRow(video = video, totalMs = totalMs, onClick = { onItemClick(video) })
+                    TrackRow(
+                        video = video,
+                        active = video.id == activeId,
+                        totalMs = totalMs,
+                        onClick = { onItemClick(video) },
+                    )
                 }
             }
         } else {
             Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.Search, contentDescription = null, tint = Neutral300, modifier = Modifier.size(56.dp))
+                    Icon(Icons.Filled.Search, contentDescription = null, tint = Zinc700, modifier = Modifier.size(56.dp))
                     Spacer(Modifier.height(16.dp))
-                    Text("Type to search", style = MaterialTheme.typography.bodyLarge.copy(color = Neutral500))
+                    Text("Type to search", fontSize = 16.sp, color = Zinc500)
                 }
             }
         }
@@ -287,34 +343,36 @@ private fun SearchPage(
 }
 
 @Composable
-private fun TrackRow(video: VideoItem, totalMs: Long, onClick: () -> Unit) {
+private fun TrackRow(video: VideoItem, active: Boolean, totalMs: Long, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 12.dp),
+            .padding(horizontal = 4.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(52.dp)
+                .size(56.dp)
                 .clip(CircleShape)
-                .background(Neutral100),
+                .background(if (active) Emerald500.copy(alpha = 0.15f) else Zinc800),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = getInitials(video.title),
-                color = Neutral900,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Black,
+            Icon(
+                Icons.Filled.MusicNote,
+                contentDescription = null,
+                tint = if (active) Emerald500 else Zinc500,
+                modifier = Modifier.size(24.dp),
             )
         }
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = video.title.ifBlank { "Untitled" },
-                style = MaterialTheme.typography.titleMedium.copy(color = Neutral900),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (active) Color.White else Zinc400,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -322,30 +380,45 @@ private fun TrackRow(video: VideoItem, totalMs: Long, onClick: () -> Unit) {
             val sub = hasSubtitle(video.path)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     formatDuration(video.durationMs),
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = Neutral900,
-                        fontWeight = FontWeight.Medium,
-                    ),
+                    fontSize = 12.sp,
+                    color = if (active) Zinc400 else Zinc500,
                 )
-                Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
+                Dot(if (active) Zinc600 else Zinc700)
                 Text(
                     if (sub) "Ready" else "Not Ready",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = if (sub) Blue500 else Neutral400,
-                    ),
+                    fontSize = 12.sp,
+                    color = if (active) Zinc400 else Zinc500,
                 )
-                Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
+                Dot(if (active) Zinc600 else Zinc700)
                 Text(
-                    "Time spand ${formatTotalHours(totalMs)}",
-                    style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
+                    "time spend ${formatTotalHours(totalMs)}",
+                    fontSize = 12.sp,
+                    color = if (active) Zinc400 else Zinc500,
                 )
             }
         }
+
+        Icon(
+            Icons.Filled.ChevronRight,
+            contentDescription = null,
+            tint = if (active) Zinc500 else Zinc600,
+            modifier = Modifier.size(20.dp),
+        )
     }
+}
+
+@Composable
+private fun Dot(color: Color) {
+    Box(
+        modifier = Modifier
+            .size(3.dp)
+            .clip(CircleShape)
+            .background(color),
+    )
 }
 
 @Composable
@@ -354,11 +427,12 @@ private fun EmptyState(modifier: Modifier = Modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("\uD83C\uDFB5", fontSize = 48.sp)
             Spacer(Modifier.height(16.dp))
-            Text("No tracks found", style = MaterialTheme.typography.titleLarge.copy(color = Neutral900))
+            Text("No tracks found", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
             Spacer(Modifier.height(6.dp))
             Text(
                 "Videos on your device will appear here",
-                style = MaterialTheme.typography.bodyMedium.copy(color = Neutral500),
+                fontSize = 14.sp,
+                color = Zinc500,
             )
         }
     }
@@ -370,11 +444,12 @@ private fun NoResultsState(modifier: Modifier = Modifier, query: String) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("\uD83D\uDD0D", fontSize = 44.sp)
             Spacer(Modifier.height(16.dp))
-            Text("No matches", style = MaterialTheme.typography.titleLarge.copy(color = Neutral900))
+            Text("No matches", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
             Spacer(Modifier.height(6.dp))
             Text(
                 "Nothing found for \"$query\"",
-                style = MaterialTheme.typography.bodyMedium.copy(color = Neutral500),
+                fontSize = 14.sp,
+                color = Zinc500,
             )
         }
     }
@@ -387,11 +462,16 @@ private fun SortSheet(
     onSelect: (SortMode) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Zinc900,
+    ) {
         Column(modifier = Modifier.padding(bottom = 32.dp)) {
             Text(
                 "Sort by",
-                style = MaterialTheme.typography.titleLarge.copy(color = Neutral900),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
             )
             SortOption(label = "Newest first", selected = current == SortMode.DATE_DESC, onClick = { onSelect(SortMode.DATE_DESC) })
@@ -415,29 +495,23 @@ private fun SortOption(label: String, selected: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                color = if (selected) Black else Neutral600,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            ),
+            fontSize = 15.sp,
+            color = if (selected) Emerald500 else Zinc400,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             modifier = Modifier.weight(1f),
         )
         if (selected) {
-            Icon(Icons.Filled.FilterList, contentDescription = null, tint = Black, modifier = Modifier.size(20.dp))
+            Icon(Icons.Filled.FilterList, contentDescription = null, tint = Emerald500, modifier = Modifier.size(20.dp))
         }
     }
 }
 
 @Composable
 private fun itemColors() = NavigationBarItemDefaults.colors(
-    selectedIconColor = Black,
-    unselectedIconColor = Neutral500,
-    indicatorColor = Neutral100,
+    selectedIconColor = Emerald500,
+    unselectedIconColor = Zinc500,
+    indicatorColor = Zinc800,
 )
-
-private fun getInitials(title: String): String {
-    if (title.isBlank()) return "?"
-    return title.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercase() }.joinToString("")
-}
 
 private fun formatDuration(ms: Long): String {
     if (ms <= 0) return "0:00"
