@@ -318,11 +318,11 @@ private fun TrackRow(video: VideoItem, totalMs: Long, onClick: () -> Unit) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
             val sub = hasSubtitle(video.path)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     formatDuration(video.durationMs),
@@ -331,27 +331,17 @@ private fun TrackRow(video: VideoItem, totalMs: Long, onClick: () -> Unit) {
                         fontWeight = FontWeight.Medium,
                     ),
                 )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(if (sub) Blue500.copy(alpha = 0.12f) else Neutral100)
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                ) {
-                    Text(
-                        if (sub) "Generated" else "Not Generated",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = if (sub) Blue500 else Neutral500,
-                            fontSize = 11.sp,
-                        ),
-                    )
-                }
-                Spacer(Modifier.weight(1f))
+                Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    "Total ${formatTotalHours(totalMs)}",
+                    if (sub) "Ready" else "Not Ready",
                     style = MaterialTheme.typography.bodySmall.copy(
-                        color = Neutral400,
-                        fontSize = 11.sp,
+                        color = if (sub) Blue500 else Neutral400,
                     ),
+                )
+                Text("\u00B7", color = Neutral300, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Time spand ${formatTotalHours(totalMs)}",
+                    style = MaterialTheme.typography.bodySmall.copy(color = Neutral500),
                 )
             }
         }
