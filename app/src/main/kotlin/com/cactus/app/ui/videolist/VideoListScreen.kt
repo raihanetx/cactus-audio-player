@@ -363,7 +363,7 @@ private fun TrackRow(video: VideoItem, active: Boolean, totalMs: Long, onClick: 
                 Icons.Filled.MusicNote,
                 contentDescription = null,
                 tint = if (active) Emerald500 else Zinc500,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(18.dp),
             )
         }
 

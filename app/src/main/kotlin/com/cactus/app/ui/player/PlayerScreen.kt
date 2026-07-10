@@ -18,7 +18,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -41,15 +46,16 @@ import androidx.compose.ui.unit.sp
 import com.cactus.app.model.VideoItem
 import com.cactus.app.ui.theme.Black
 import com.cactus.app.ui.theme.Neutral200
+import com.cactus.app.ui.theme.Neutral300
 import com.cactus.app.ui.theme.Neutral400
 import com.cactus.app.ui.theme.Neutral500
 import com.cactus.app.ui.theme.Neutral700
 import com.cactus.app.ui.theme.Neutral800
-import com.cactus.app.ui.theme.Neutral900
 import com.cactus.app.ui.theme.White
 import kotlinx.coroutines.delay
 import java.io.File
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
     video: VideoItem,
@@ -61,6 +67,8 @@ fun PlayerScreen(
     var isPlaying by remember { mutableStateOf(false) }
     var duration by remember { mutableLongStateOf(0L) }
     var currentPosition by remember { mutableLongStateOf(0L) }
+    var dragging by remember { mutableStateOf(false) }
+    var sliderPos by remember { mutableFloatStateOf(0f) }
 
     DisposableEffect(video.id) {
         try {
@@ -109,60 +117,66 @@ fun PlayerScreen(
     }
 
     Column(modifier = modifier.fillMaxSize().background(White)) {
-        Box(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
+                modifier = Modifier.size(40.dp).clip(CircleShape).clickable { onBack() },
+                contentAlignment = Alignment.Center,
             ) {
-                Box(
-                    modifier = Modifier.size(36.dp).clip(CircleShape).clickable { onBack() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = Neutral700, modifier = Modifier.size(20.dp))
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "NOW PLAYING",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp,
-                        color = Neutral400,
-                        letterSpacing = 1.sp,
-                    )
-                    Text(
-                        video.title.ifBlank { "Untitled" },
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = Black,
-                    )
-                }
-                Box(modifier = Modifier.size(36.dp))
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Back", tint = Neutral700, modifier = Modifier.size(20.dp))
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "NOW PLAYING",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    color = Neutral400,
+                    letterSpacing = 1.sp,
+                )
+                Text(
+                    video.title.ifBlank { "Untitled" },
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = Black,
+                    maxLines = 1,
+                )
+            }
+            Box(
+                modifier = Modifier.size(40.dp).clip(CircleShape).clickable { },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "More", tint = Neutral700, modifier = Modifier.size(20.dp))
             }
         }
 
         Column(
-            modifier = Modifier.weight(1f).padding(horizontal = 32.dp),
+            modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            Spacer(Modifier.height(20.dp))
-
             Box(
-                modifier = Modifier.size(160.dp).clip(RoundedCornerShape(24.dp)).background(
-                    Brush.linearGradient(
-                        colors = listOf(Neutral800, Black),
-                        start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                        end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
-                    )
-                ),
+                modifier = Modifier
+                    .size(160.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(Neutral800, Black),
+                            start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                            end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
+                        )
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = getInitials(video.title),
-                    color = White.copy(alpha = 0.9f),
-                    fontSize = 56.sp,
-                    fontWeight = FontWeight.Black,
+                Icon(
+                    Icons.Filled.MusicNote,
+                    contentDescription = null,
+                    tint = White,
+                    modifier = Modifier.size(56.dp),
                 )
             }
 
@@ -175,36 +189,61 @@ fun PlayerScreen(
                 color = Black,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 getParentFolder(video.path),
                 fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
                 color = Neutral400,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.width(280.dp),
             )
+        }
 
-            Spacer(Modifier.height(32.dp))
-
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Neutral200)
-                        .clickable(enabled = false) { }
-                ) {
-                    val progress = if (duration > 0) currentPosition.toFloat() / duration else 0f
-                    Box(
-                        modifier = Modifier.fillMaxWidth(progress).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Black)
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(formatTime(currentPosition), color = Neutral500, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                    Text(formatTime(duration), color = Neutral500, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    formatTime(currentPosition),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Neutral500,
+                    modifier = Modifier.width(40.dp),
+                )
+                Slider(
+                    value = if (dragging) sliderPos else currentPosition.toFloat().coerceIn(0f, duration.toFloat().coerceAtLeast(1f)),
+                    onValueChange = {
+                        sliderPos = it
+                        dragging = true
+                        currentPosition = it.toLong()
+                    },
+                    onValueChangeFinished = {
+                        if (isPrepared && duration > 0) mediaPlayer.seekTo(sliderPos.toInt())
+                        dragging = false
+                    },
+                    valueRange = 0f..duration.toFloat().coerceAtLeast(1f),
+                    colors = SliderDefaults.colors(
+                        thumbColor = Black,
+                        activeTrackColor = Black,
+                        inactiveTrackColor = Neutral200,
+                    ),
+                    modifier = Modifier.weight(1f).height(24.dp),
+                )
+                Text(
+                    formatTime(duration),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Neutral500,
+                    modifier = Modifier.width(40.dp),
+                    textAlign = TextAlign.End,
+                )
             }
-
-            Spacer(Modifier.height(32.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -224,7 +263,7 @@ fun PlayerScreen(
                         .clip(RoundedCornerShape(100))
                         .background(if (isPrepared) Black else Neutral200)
                         .clickable(enabled = isPrepared) { togglePlay() }
-                        .padding(horizontal = 32.dp, vertical = 10.dp),
+                        .padding(horizontal = 28.dp, vertical = 10.dp),
                 ) {
                     Text(
                         if (isPlaying) "Pause" else "Play",
@@ -242,13 +281,25 @@ fun PlayerScreen(
                     modifier = Modifier.clickable { skip(10) },
                 )
             }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(modifier = Modifier.size(width = 16.dp, height = 6.dp).clip(CircleShape).background(Black))
+                Spacer(Modifier.width(6.dp))
+                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Neutral300))
+                Spacer(Modifier.width(6.dp))
+                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Neutral300))
+                Spacer(Modifier.width(6.dp))
+                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Neutral300))
+            }
+            Spacer(Modifier.height(8.dp))
         }
     }
-}
-
-private fun getInitials(title: String): String {
-    if (title.isBlank()) return "?"
-    return title.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercase() }.joinToString("")
 }
 
 private fun getParentFolder(path: String): String {
