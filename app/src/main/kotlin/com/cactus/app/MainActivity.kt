@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.cactus.app.ui.player.SubtitleScreen
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -57,7 +58,7 @@ private fun VideoApp() {
     val context = LocalContext.current
     var hasPermission by remember { mutableStateOf(false) }
     var videos by remember { mutableStateOf<List<VideoItem>>(emptyList()) }
-    var selectedVideo by remember { mutableStateOf<VideoItem?>(null) }
+    var screen by remember { mutableStateOf<AppScreen>(AppScreen.List) }
 
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_VIDEO
@@ -80,8 +81,6 @@ private fun VideoApp() {
             scanVideos(context) { result -> videos = result }
         }
     }
-
-    val selected = selectedVideo
 
     if (!hasPermission) {
         Column(
@@ -112,15 +111,33 @@ private fun VideoApp() {
                 Text("Grant Permission", color = White, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 8.dp))
             }
         }
-    } else if (selected != null) {
-        PlayerScreen(video = selected, onBack = { selectedVideo = null })
     } else {
-        VideoListScreen(
-            videos = videos,
-            onItemClick = { video -> selectedVideo = video },
-            modifier = Modifier.fillMaxSize(),
-        )
+        when (val s = screen) {
+            AppScreen.List -> VideoListScreen(
+                videos = videos,
+                onItemClick = { video -> screen = AppScreen.Player(video) },
+                modifier = Modifier.fillMaxSize(),
+            )
+            is AppScreen.Player -> {
+                val v = s.video
+                PlayerScreen(
+                    video = v,
+                    onBack = { screen = AppScreen.List },
+                    onOpenSubtitle = { screen = AppScreen.Subtitle(v) },
+                )
+            }
+            is AppScreen.Subtitle -> {
+                val v = s.video
+                SubtitleScreen(video = v, onBack = { screen = AppScreen.Player(v) })
+            }
+        }
     }
+}
+
+private sealed interface AppScreen {
+    data object List : AppScreen
+    data class Player(val video: VideoItem) : AppScreen
+    data class Subtitle(val video: VideoItem) : AppScreen
 }
 
 private fun scanVideos(context: android.content.Context, onResult: (List<VideoItem>) -> Unit) {

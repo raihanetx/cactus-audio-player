@@ -60,6 +60,7 @@ import java.io.File
 fun PlayerScreen(
     video: VideoItem,
     onBack: () -> Unit,
+    onOpenSubtitle: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val mediaPlayer = remember { MediaPlayer() }
@@ -289,9 +290,9 @@ fun PlayerScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(modifier = Modifier.size(width = 16.dp, height = 6.dp).clip(CircleShape).background(Black))
+                Box(modifier = Modifier.size(width = 16.dp, height = 6.dp).clip(CircleShape).background(Black).clickable { onBack() })
                 Spacer(Modifier.width(6.dp))
-                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Neutral300))
+                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Neutral300).clickable { onOpenSubtitle() })
                 Spacer(Modifier.width(6.dp))
                 Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Neutral300))
                 Spacer(Modifier.width(6.dp))
