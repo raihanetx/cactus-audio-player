@@ -1,6 +1,5 @@
 package com.cactus.app.ui.player
 
-import android.media.MediaPlayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,12 +26,8 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,24 +37,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cactus.app.model.VideoItem
 import com.cactus.app.ui.theme.Black
+import com.cactus.app.ui.theme.Neutral100
 import com.cactus.app.ui.theme.Neutral200
 import com.cactus.app.ui.theme.Neutral300
 import com.cactus.app.ui.theme.Neutral400
 import com.cactus.app.ui.theme.Neutral500
 import com.cactus.app.ui.theme.Neutral700
 import com.cactus.app.ui.theme.Neutral800
-import com.cactus.app.ui.theme.Neutral100
 import com.cactus.app.ui.theme.White
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -67,15 +62,6 @@ import kotlin.random.Random
 
 private val BlueFaded = Color(0xFF93C5FD)
 private val BlueSolid = Color(0xFF2563EB)
-
-private fun formatTime(ms: Long): String {
-    if (ms <= 0) return "0:00"
-    val totalSec = ms / 1000
-    val h = totalSec / 3600
-    val m = (totalSec % 3600) / 60
-    val s = totalSec % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
-}
 
 private data class DialogueLine(
     val time: String,
@@ -95,63 +81,18 @@ private val SAMPLE_DIALOGUE = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SubtitleScreen(
+fun SubtitlePage(
+    player: PlayerState,
     video: VideoItem,
     onBack: () -> Unit,
+    onSelectPage: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val mediaPlayer = remember { MediaPlayer() }
-    var isPrepared by remember { mutableStateOf(false) }
-    var isPlaying by remember { mutableStateOf(false) }
-    var duration by remember { mutableLongStateOf(0L) }
-    var currentPosition by remember { mutableLongStateOf(0L) }
-    var dragging by remember { mutableStateOf(false) }
-    var sliderPos by remember { mutableFloatStateOf(0f) }
-
     var isTranslated by remember { mutableStateOf(false) }
     var isTranslating by remember { mutableStateOf(false) }
     var translateProgress by remember { mutableIntStateOf(0) }
     val selected = remember { mutableStateListOf<Int>() }
     val scope = rememberCoroutineScope()
-
-    DisposableEffect(video.id) {
-        try {
-            mediaPlayer.setDataSource(video.path)
-            mediaPlayer.setOnPreparedListener { mp ->
-                isPrepared = true
-                duration = mp.duration.toLong()
-            }
-            mediaPlayer.setOnCompletionListener {
-                isPlaying = false
-                currentPosition = 0
-            }
-            mediaPlayer.prepareAsync()
-        } catch (_: Exception) { }
-
-        onDispose { mediaPlayer.release() }
-    }
-
-    LaunchedEffect(isPlaying) {
-        while (isPlaying) {
-            currentPosition = mediaPlayer.currentPosition.toLong()
-            delay(250)
-        }
-    }
-
-    val togglePlay: () -> Unit = {
-        if (isPrepared) {
-            if (isPlaying) { mediaPlayer.pause(); isPlaying = false }
-            else { mediaPlayer.start(); isPlaying = true }
-        }
-    }
-
-    val skip: (Int) -> Unit = { seconds ->
-        if (isPrepared) {
-            val newPos = (mediaPlayer.currentPosition + seconds * 1000).coerceIn(0, mediaPlayer.duration)
-            mediaPlayer.seekTo(newPos)
-            currentPosition = newPos.toLong()
-        }
-    }
 
     val startTranslate: () -> Unit = {
         isTranslating = true
@@ -173,9 +114,7 @@ fun SubtitleScreen(
 
     Column(modifier = modifier.fillMaxSize().background(White)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -249,50 +188,40 @@ fun SubtitleScreen(
                             color = mainColor,
                             lineHeight = 20.sp,
                         )
-                        if (isTranslated) {
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                line.pron,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                fontStyle = if (isSelected) FontStyle.Normal else FontStyle.Italic,
-                                color = if (isSelected) BlueSolid else BlueFaded,
-                            )
-                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            line.pron,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            fontStyle = if (isSelected) FontStyle.Normal else FontStyle.Italic,
+                            color = if (isSelected) BlueSolid else BlueFaded,
+                        )
                     }
                 }
             }
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(White)
-                .padding(horizontal = 20.dp)
-                .padding(top = 16.dp, bottom = 8.dp),
+            modifier = Modifier.fillMaxWidth().background(White).padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 8.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(formatTime(currentPosition), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Neutral500, modifier = Modifier.width(32.dp))
+                Text(formatTime(player.currentPosition), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Neutral500, modifier = Modifier.width(32.dp))
                 Slider(
-                    value = if (dragging) sliderPos else currentPosition.toFloat().coerceIn(0f, duration.toFloat().coerceAtLeast(1f)),
+                    value = if (player.dragging) player.sliderPos else player.currentPosition.toFloat().coerceIn(0f, player.duration.toFloat().coerceAtLeast(1f)),
                     onValueChange = {
-                        sliderPos = it
-                        dragging = true
-                        currentPosition = it.toLong()
+                        player.sliderPos = it
+                        player.dragging = true
+                        player.currentPosition = it.toLong()
                     },
                     onValueChangeFinished = {
-                        if (isPrepared && duration > 0) mediaPlayer.seekTo(sliderPos.toInt())
-                        dragging = false
+                        player.seekTo(player.sliderPos.toLong())
+                        player.dragging = false
                     },
-                    valueRange = 0f..duration.toFloat().coerceAtLeast(1f),
-                    colors = SliderDefaults.colors(
-                        thumbColor = Black,
-                        activeTrackColor = Black,
-                        inactiveTrackColor = Neutral200,
-                    ),
+                    valueRange = 0f..player.duration.toFloat().coerceAtLeast(1f),
+                    colors = SliderDefaults.colors(thumbColor = Black, activeTrackColor = Black, inactiveTrackColor = Neutral200),
                     modifier = Modifier.weight(1f).height(24.dp),
                 )
-                Text(formatTime(duration), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Neutral500, modifier = Modifier.width(32.dp), textAlign = TextAlign.End)
+                Text(formatTime(player.duration), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Neutral500, modifier = Modifier.width(32.dp), textAlign = TextAlign.End)
             }
 
             Row(
@@ -300,17 +229,17 @@ fun SubtitleScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("-15s", color = Neutral700, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.clickable { skip(-15) })
+                Text("-15s", color = Neutral700, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.clickable { player.skip(-15) })
                 Spacer(Modifier.width(24.dp))
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(100))
-                        .background(if (isPrepared) Black else Neutral200)
+                        .background(if (player.isPrepared) Black else Neutral200)
                         .clickable {
                             if (!isTranslated) {
                                 if (!isTranslating) startTranslate()
                             } else {
-                                togglePlay()
+                                player.toggle()
                             }
                         }
                         .padding(horizontal = 24.dp, vertical = 10.dp),
@@ -319,26 +248,18 @@ fun SubtitleScreen(
                         when {
                             !isTranslated && isTranslating -> "$translateProgress%"
                             !isTranslated -> "Translate"
-                            isPlaying -> "Pause"
+                            player.isPlaying -> "Pause"
                             else -> "Play"
                         },
                         color = White, fontWeight = FontWeight.Bold, fontSize = 14.sp,
                     )
                 }
                 Spacer(Modifier.width(24.dp))
-                Text("+15s", color = Neutral700, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.clickable { skip(15) })
+                Text("+15s", color = Neutral700, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.clickable { player.skip(15) })
             }
 
             Spacer(Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Neutral300).clickable { onBack() })
-                Spacer(Modifier.width(6.dp))
-                Box(modifier = Modifier.size(width = 16.dp, height = 6.dp).clip(CircleShape).background(Black))
-                Spacer(Modifier.width(6.dp))
-                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Neutral300))
-                Spacer(Modifier.width(6.dp))
-                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Neutral300))
-            }
+            PageDots(active = 1, onSelect = onSelectPage)
             Spacer(Modifier.height(8.dp))
         }
     }

@@ -24,7 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import com.cactus.app.ui.player.SubtitleScreen
+import com.cactus.app.ui.player.PlayerPagerScreen
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.cactus.app.model.VideoItem
-import com.cactus.app.ui.player.PlayerScreen
 import com.cactus.app.ui.theme.Black
 import com.cactus.app.ui.theme.Neutral500
 import com.cactus.app.ui.theme.White
@@ -119,16 +118,7 @@ private fun VideoApp() {
                 modifier = Modifier.fillMaxSize(),
             )
             is AppScreen.Player -> {
-                val v = s.video
-                PlayerScreen(
-                    video = v,
-                    onBack = { screen = AppScreen.List },
-                    onOpenSubtitle = { screen = AppScreen.Subtitle(v) },
-                )
-            }
-            is AppScreen.Subtitle -> {
-                val v = s.video
-                SubtitleScreen(video = v, onBack = { screen = AppScreen.Player(v) })
+                PlayerPagerScreen(video = s.video, onBack = { screen = AppScreen.List })
             }
         }
     }
@@ -137,7 +127,6 @@ private fun VideoApp() {
 private sealed interface AppScreen {
     data object List : AppScreen
     data class Player(val video: VideoItem) : AppScreen
-    data class Subtitle(val video: VideoItem) : AppScreen
 }
 
 private fun scanVideos(context: android.content.Context, onResult: (List<VideoItem>) -> Unit) {
