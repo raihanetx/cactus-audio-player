@@ -138,7 +138,7 @@ fun SubtitlePage(
 
         if (!isTranslated) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                modifier = Modifier.weight(1f).padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
@@ -159,7 +159,7 @@ fun SubtitlePage(
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().weight(1f),
+                modifier = Modifier.weight(1f),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
