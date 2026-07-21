@@ -2,21 +2,25 @@ package com.cactus.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Blue500 = Color(0xFF3B82F6)
-val Blue600 = Color(0xFF2563EB)
+/* Cactus design tokens — "Warm Sand & Cactus Green" (PRD §5.1).
+ * Names match the PRD color roles exactly so the mapping is unambiguous.
+ * Dark mode is the default (PRD §5.2, §12.5). */
 
-val Neutral50 = Color(0xFFFAFAFA)
-val Neutral100 = Color(0xFFF5F5F5)
-val Neutral200 = Color(0xFFE5E5E5)
-val Neutral300 = Color(0xFFD4D4D4)
-val Neutral400 = Color(0xFFA3A3A3)
-val Neutral500 = Color(0xFF737373)
-val Neutral600 = Color(0xFF525252)
-val Neutral700 = Color(0xFF404040)
-val Neutral800 = Color(0xFF262626)
-val Neutral900 = Color(0xFF171717)
+// Primary roles
+val primary           = Color(0xFF6FCF87) // Cactus Green — main actions, active state
+val onPrimary         = Color(0xFF00391B) // text on primary surfaces
+val primaryContainer  = Color(0xFF1B5E2E) // cards, active list items
 
-val White = Color(0xFFFFFFFF)
-val Black = Color(0xFF000000)
-val Red500 = Color(0xFFEF4444)
-val Red50 = Color(0xFFFEF2F2)
+// Secondary / Tertiary
+val secondary         = Color(0xFFF0B86C) // Desert Gold — accents, timestamps
+val tertiary          = Color(0xFFD99CBE) // Desert Bloom — loops, notes features
+
+// Surfaces (warm dark, never pure black)
+val surface           = Color(0xFF1A1A14) // Warm Charcoal — APP background (PRD §5.1)
+val surfaceContainer  = Color(0xFF25251E) // Elevated surfaces (cards, nav)
+val background        = Color(0xFF121210) // Base background (deepest layer)
+
+// Text / support
+val onSurface         = Color(0xFFF5F3EC) // high-contrast text on warm dark
+val onSurfaceVariant  = Color(0xFFA8A597) // secondary text, muted icons
+val outline           = Color(0xFF3A3A30) // hairlines, dividers
